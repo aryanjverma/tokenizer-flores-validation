@@ -4,6 +4,8 @@ LangMAP-style manuscript reporting Study A (frontier FLORES token tax),
 Study B (equal-byte SuperBPE vs BPE), and Study C (Phase 0 100M LM pilot +
 deferred 1B UniMax BPB placeholders).
 
+**1B training handoff:** see [`../HANDOFF_1B.md`](../HANDOFF_1B.md) (points at `edullm-data` branch `handoff/plan-b-1b`).
+
 ## Deliverable
 
 - [`main.pdf`](main.pdf) — compiled paper
