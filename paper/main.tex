@@ -15,6 +15,7 @@
 \usepackage{tabularx}
 \usepackage{float}
 \usepackage{microtype}
+\usepackage{placeins}
 
 \hypersetup{
   colorlinks=true,
@@ -68,6 +69,7 @@ A second question is whether algorithm choice can close the tax.
 SuperBPE~\citep{liu2025superbpe} extends BPE with a second stage that learns whitespace-bridging ``superwords,'' reporting large English-centric efficiency and quality gains.
 We ask whether those gains transfer under a multilingual equal-byte training regime that includes languages where SuperBPE has already been shown to underperform on BPB---Mandarin and Hungarian~\citep{chowdhury-woolf-2026-benchmarking}.
 We train matched BPE and SuperBPE arms on 960\,MB of FineWeb~/FineWeb-2 text~\citep{penedo2024fineweb,penedo2025fineweb2} and evaluate on FLORES.
+Throughout Studies~B and~C we write \texttt{gigatoken}(BPE) for the BPE arm trained with Gigatoken~\citep{roed2026gigatoken} and \texttt{supergigatoken}(SuperBPE) for the SuperBPE arm trained with our SuperBPE-capable Gigatoken fork~\citep{verma2026supergigatoken}.
 We find that SuperBPE is not uniformly preferable: fertility improves for five of six languages, but English-relative token premium worsens for Mandarin and Hungarian, aligning with that prior extrinsic result.
 Any recommendation must therefore be language-conditional.
 
@@ -170,7 +172,7 @@ On \texttt{o200k}, Amharic ($5.78\times$) and Odia ($4.99\times$) sit in the mid
 Dialectal Arabic is milder ($1.4$--$1.8\times$ on frontier BPE) but still a clear tax relative to English; the published SuperBPE baseline nearly doubles those Arabic premiums ($3.2\times$).
 Swahili and Hausa---Latin script, African---land near $1.5\times$ on \texttt{o200k} and just under $2\times$ on Llama/Qwen/GLM, confirming that script family alone does not explain the Amharic/Odia gap.
 
-\begin{figure}[t]
+\begin{figure}[!ht]
 \centering
 \includegraphics[width=\linewidth]{figures/efficiency_token_premium_heatmap.png}
 \caption{Token-premium heatmap over the full 12-language efficiency set (Study~A). English is exactly $1.0$ by construction.}
@@ -197,6 +199,7 @@ Europe    & 1.77 & 1.88 & 2.31 & 3.38 \\
 Continent means (Table~\ref{tab:continent}, Figure~\ref{fig:heatmap}) show Africa and Asia carrying the heaviest mean tax under frontier BPEs; Asia's SuperBPE mean ($5.55$) is dominated by Odia.
 Because API cost scales with tokens, an Amharic request that is content-parallel to an English request costs $5.78\times$ as many \texttt{o200k} tokens---and therefore $5.78\times$ the token-metered spend---under the same pricing tier.
 
+\FloatBarrier
 \section{Study B: SuperBPE versus BPE}
 \label{sec:study-b}
 
@@ -209,10 +212,10 @@ English, Hungarian, Mandarin, Hindi, Swahili, and Haitian Creole
 This set is \emph{not} interchangeable with Study~A's twelve languages; Amharic, Odia, Hausa, and dialectal Arabic are absent from the bake-off.
 
 \paragraph{Training.}
-We train matched BPE and SuperBPE tokenizers with Gigatoken~\citep{roed2026gigatoken} via our SuperBPE-capable fork \texttt{supergigatoken}~\citep{verma2026supergigatoken} on an equal-byte \emph{scale} corpus: $160$\,MB per language, $960$\,MB total, drawn from FineWeb (English) and FineWeb-2 (other languages).
+We train matched \texttt{gigatoken}(BPE) and \texttt{supergigatoken}(SuperBPE) tokenizers~\citep{roed2026gigatoken,verma2026supergigatoken} on an equal-byte \emph{scale} corpus: $160$\,MB per language, $960$\,MB total, drawn from FineWeb (English) and FineWeb-2 (other languages).
 Equal bytes prevent a measured Creole or Swahili penalty from being a corpus-size artifact.
 Vocabulary size is $100{,}000$; SuperBPE transitions at $80{,}000$.
-Pair verification confirms that SuperBPE carries the BPE merge prefix through the transition point.
+Pair verification confirms that \texttt{supergigatoken}(SuperBPE) carries the \texttt{gigatoken}(BPE) merge prefix through the transition point.
 We pin \texttt{supergigatoken} at commit \texttt{00e61db} (branch \texttt{superbpe-stage1-pretokenizer}).
 Each arm is encoded with the pre-tokenizer recorded in its own \texttt{tokenizer.json}.
 
@@ -225,7 +228,8 @@ LM bits-per-byte is deferred to Study~C (\S\ref{sec:study-c}).
 
 \begin{table}[t]
 \centering
-\caption{Study~B: English-relative token premium after equal-byte training. SuperBPE \emph{worsens} premium for Hungarian and Mandarin (bold).}
+\caption{Study~B: English-relative token premium after equal-byte training.
+Bold marks the better (lower) premium. SuperBPE worsens premium for Hungarian and Mandarin.}
 \label{tab:plan-a-premium}
 \small
 \begin{tabular}{@{}lrrc@{}}
@@ -233,30 +237,31 @@ LM bits-per-byte is deferred to Study~C (\S\ref{sec:study-c}).
 Language & BPE & SuperBPE & $\Delta$ \\
 \midrule
 English           & 1.000 & 1.000 & --- \\
-Hungarian         & 1.084 & \textbf{1.160} & $+0.076$ \\
-Mandarin          & 0.912 & \textbf{1.082} & $+0.170$ \\
-Hindi             & 1.259 & 1.256 & $-0.003$ \\
-Swahili           & 1.032 & 1.056 & $+0.024$ \\
-Haitian Creole    & 1.034 & 1.004 & $-0.030$ \\
+Hungarian         & \textbf{1.084} & 1.160 & $+0.076$ \\
+Mandarin          & \textbf{0.912} & 1.082 & $+0.170$ \\
+Hindi             & 1.259 & \textbf{1.256} & $-0.003$ \\
+Swahili           & \textbf{1.032} & 1.056 & $+0.024$ \\
+Haitian Creole    & 1.034 & \textbf{1.004} & $-0.030$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[t]
 \centering
-\caption{Study~B: fertility (tokens / whitespace word). Mandarin is reported but not interpreted as tokens/word.}
+\caption{Study~B: fertility (tokens / whitespace word). Bold marks the better (lower) fertility.
+Mandarin is reported but not interpreted as tokens/word.}
 \label{tab:plan-a-fertility}
 \small
 \begin{tabular}{@{}lrr@{}}
 \toprule
 Language & BPE & SuperBPE \\
 \midrule
-English        & 1.321 & 1.124 \\
-Hungarian      & 1.676 & 1.526 \\
-Mandarin       & 12.759 & 12.874 \\
-Hindi          & 1.420 & 1.206 \\
-Swahili        & 1.402 & 1.221 \\
-Haitian Creole & 1.293 & 1.068 \\
+English        & 1.321 & \textbf{1.124} \\
+Hungarian      & 1.676 & \textbf{1.526} \\
+Mandarin       & \textbf{12.759} & 12.874 \\
+Hindi          & 1.420 & \textbf{1.206} \\
+Swahili        & 1.402 & \textbf{1.221} \\
+Haitian Creole & 1.293 & \textbf{1.068} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -303,10 +308,10 @@ Prefer BPE where premium worsens---explicitly Mandarin and Hungarian in this sui
 \subsection{Trainer caveat (Hindi)}
 \label{sec:hindi-caveat}
 
-Our default trainer (\texttt{supergigatoken}~\citep{verma2026supergigatoken}, built on Gigatoken~\citep{roed2026gigatoken}) implements SuperBPE stage~2 without the official \texttt{STAGE2\_REGEX}, bounding units by separator, newline, and a maximum unit length of 128.
-Relative to the official SuperBPE trainer~\citep{liu2025superbpe}, this yields a Hindi-specific compression advantage for the SuperBPE arm at small vocabularies (premium deltas of $-3.13\%$ at 4k and $-6.61\%$ at 16k in pilot cross-checks).
-The BPE arm remains comparable across trainers.
-Hindi SuperBPE premiums in Table~\ref{tab:plan-a-premium} should therefore be read as \emph{gigatoken-SuperBPE} numbers, not as a direct replication of published Liu et~al.\ SuperBPE.
+Our default trainer for the SuperBPE arm (\texttt{supergigatoken}(SuperBPE)~\citep{verma2026supergigatoken}, built on Gigatoken~\citep{roed2026gigatoken}) implements SuperBPE stage~2 without the official \texttt{STAGE2\_REGEX}, bounding units by separator, newline, and a maximum unit length of 128.
+Relative to the official SuperBPE trainer~\citep{liu2025superbpe}, this yields a Hindi-specific compression advantage for \texttt{supergigatoken}(SuperBPE) at small vocabularies (premium deltas of $-3.13\%$ at 4k and $-6.61\%$ at 16k in pilot cross-checks).
+The \texttt{gigatoken}(BPE) arm remains comparable across trainers.
+Hindi SuperBPE premiums in Table~\ref{tab:plan-a-premium} should therefore be read as \texttt{supergigatoken}(SuperBPE) numbers, not as a direct replication of published Liu et~al.\ SuperBPE.
 
 \section{Study C: Language-Model Bake-Off}
 \label{sec:study-c}
@@ -314,13 +319,13 @@ Hindi SuperBPE premiums in Table~\ref{tab:plan-a-premium} should therefore be re
 
 Tokenizer-level metrics do not settle whether SuperBPE's fertility gains translate into better language modeling under a fixed compute budget.
 Prior monolingual BPB evidence already favors BPE over SuperBPE for Mandarin and Hungarian~\citep{chowdhury-woolf-2026-benchmarking}.
-Study~C asks the same question under matched multilingual pretraining with the Study~B Gigatoken~/\,\texttt{supergigatoken} tokenizers~\citep{roed2026gigatoken,verma2026supergigatoken}.
+Study~C asks the same question under matched multilingual pretraining with the Study~B \texttt{gigatoken}(BPE) and \texttt{supergigatoken}(SuperBPE) tokenizers~\citep{roed2026gigatoken,verma2026supergigatoken}.
 We execute a cheap Phase~0 pilot first, then specify a Phase~1 $\sim$1B UniMax run whose result tables remain empty.
 
 \subsection{Experiment process}
 
-Both phases share the Study~B tokenizers (\texttt{tokenizer/gigatoken-bpe/v1} and \texttt{tokenizer/gigatoken-superbpe/v1}, vocabulary size $100{,}000$, SuperBPE transition at $80{,}000$) and the same six FineWeb~/FineWeb-2 languages.
-Phase~0 materializes equal-\emph{token} packed shards, trains matched \texttt{olmo2\_100M} models, evaluates held-out cross-entropy as bits/token, then fertility-normalizes with Study~B FLORES characters-per-token.
+Both phases share the Study~B tokenizers (\texttt{gigatoken}(BPE) and \texttt{supergigatoken}(SuperBPE), vocabulary size $100{,}000$, SuperBPE transition at $80{,}000$) and the same six FineWeb~/FineWeb-2 languages.
+Phase~0 materializes equal-\emph{token} packed shards, trains matched \texttt{olmo2\_100M} models, evaluates held-out cross-entropy as bits/token, then fertility-normalizes with Study~B FLORES UTF-8 bytes/token.
 Phase~1 (deferred) materializes UniMax equal-\emph{byte} shards, trains matched \texttt{olmo2\_1B} models to equal FLOPs, and will report true UTF-8 bits-per-byte.
 
 \subsection{Phase 0: 100M equal-token pilot}
@@ -345,7 +350,7 @@ Because SuperBPE tokens cover more text on average, we also report an approximat
   \;=\;
   \frac{\text{bits/token}(\ell)}{\text{UTF-8 bytes/token}(\ell)},
 \end{equation}
-where bytes/token is measured by encoding FLORES-200 \texttt{devtest} with the same gigatoken tokenizers (total UTF-8 bytes over $\CTC$).
+where bytes/token is measured by encoding FLORES-200 \texttt{devtest} with the same \texttt{gigatoken}(BPE) / \texttt{supergigatoken}(SuperBPE) tokenizers (total UTF-8 bytes over $\CTC$).
 This is still an approximation of Phase~0 val BPB (FLORES domain, not the FineWeb val shards), but it uses the correct UTF-8 denominator.
 
 \paragraph{Results.}
@@ -378,7 +383,8 @@ Micro          & 5.453 & 43.82 & 6.289 &  78.20 & $+0.836$ \\
 \begin{table}[t]
 \centering
 \caption{Phase~0 approximate BPB: bits/token divided by FLORES-200 UTF-8 bytes/token
-(same gigatoken tokenizers). Negative $\Delta$ favors SuperBPE.
+(\texttt{gigatoken}(BPE) / \texttt{supergigatoken}(SuperBPE)).
+Bold marks the better (lower) approximate BPB. Negative $\Delta$ favors SuperBPE.
 Domain caveat: fertility is FLORES, not Phase~0 FineWeb val text.}
 \label{tab:phase0-approx-bpb}
 \small
@@ -386,14 +392,14 @@ Domain caveat: fertility is FLORES, not Phase~0 FineWeb val text.}
 \toprule
 Language & BPE $\widetilde{\mathrm{BPB}}$ & SuperBPE $\widetilde{\mathrm{BPB}}$ & $\Delta$ \\
 \midrule
-English        & 1.219 & 1.252 & $+0.032$ \\
-Haitian Creole & 1.419 & 1.409 & $-0.010$ \\
-Hindi          & 0.461 & 0.483 & $+0.022$ \\
-Hungarian      & 1.055 & 1.121 & $+0.066$ \\
-Swahili        & 1.147 & 1.161 & $+0.014$ \\
-Mandarin       & 1.425 & 1.428 & $+0.003$ \\
+English        & \textbf{1.219} & 1.252 & $+0.032$ \\
+Haitian Creole & 1.419 & \textbf{1.409} & $-0.010$ \\
+Hindi          & \textbf{0.461} & 0.483 & $+0.022$ \\
+Hungarian      & \textbf{1.055} & 1.121 & $+0.066$ \\
+Swahili        & \textbf{1.147} & 1.161 & $+0.014$ \\
+Mandarin       & \textbf{1.425} & 1.428 & $+0.003$ \\
 \midrule
-Micro (non-CJK)& 1.060 & 1.085 & $+0.025$ \\
+Micro (non-CJK)& \textbf{1.060} & 1.085 & $+0.025$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -480,7 +486,7 @@ Until Tables~\ref{tab:bpb-flores}--\ref{tab:bpb-americas} are filled under equal
 Study~A is encode-only: it measures token tax, not downstream task quality.
 Study~B's language set excludes Amharic, Odia, Hausa, and dialectal Arabic, so the SuperBPE recommendation does not yet cover Study~A's highest-tax scripts.
 The three studies in this codebase (12-language efficiency, 18-language Zipf, 6-language Plan~A/B) use non-overlapping language locks; numbers must not be pooled without labels.
-Gigatoken~/\,\texttt{supergigatoken}'s Hindi SuperBPE stage-2 deviation (\S\ref{sec:hindi-caveat}) means Hindi SuperBPE premiums are not directly comparable to published Liu et~al.\ numbers.
+\texttt{supergigatoken}(SuperBPE)'s Hindi stage-2 deviation (\S\ref{sec:hindi-caveat}) means Hindi SuperBPE premiums are not directly comparable to published Liu et~al.\ numbers.
 Phase~0 matches equal tokens rather than equal bytes, and its $\widetilde{\mathrm{BPB}}$ uses FLORES UTF-8 bytes/token rather than paired byte lengths on the Phase~0 FineWeb val shards (domain mismatch).
 The 1B LM bake-off is specified but not executed; Tables~\ref{tab:bpb-flores}--\ref{tab:bpb-americas} are empty by design.
 
@@ -495,7 +501,7 @@ A Phase~0 \texttt{olmo2\_100M} pilot shows that raw bits/token strongly favors B
 Filling the deferred 1B equal-byte BPB tables is the remaining step before a quality-aware recommendation.
 
 \section*{Acknowledgments}
-FLORES-200~\citep{goyal2022flores,nllb2022}, FineWeb~/FineWeb-2~\citep{penedo2024fineweb,penedo2025fineweb2}, SuperBPE~\citep{liu2025superbpe}, Gigatoken~\citep{roed2026gigatoken}, \texttt{supergigatoken}~\citep{verma2026supergigatoken}, and the OLMo stack~\citep{olmo2025} made these measurements possible.
+FLORES-200~\citep{goyal2022flores,nllb2022}, FineWeb~/FineWeb-2~\citep{penedo2024fineweb,penedo2025fineweb2}, SuperBPE~\citep{liu2025superbpe}, \texttt{gigatoken}(BPE)~\citep{roed2026gigatoken}, \texttt{supergigatoken}(SuperBPE)~\citep{verma2026supergigatoken}, and the OLMo stack~\citep{olmo2025} made these measurements possible.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
