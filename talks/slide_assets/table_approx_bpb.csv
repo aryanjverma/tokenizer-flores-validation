@@ -1,0 +1,8 @@
+language,bpe,superbpe,delta
+English,1.2194,1.2516,0.0322
+Haitian Creole,1.4194,1.409,-0.0104
+Hindi,0.4613,0.4834,0.0221
+Hungarian,1.0551,1.1214,0.0663
+Swahili,1.1472,1.161,0.0138
+Mandarin,1.425,1.4278,0.0027
+Micro (non-CJK),1.0605,1.0853,0.0248
