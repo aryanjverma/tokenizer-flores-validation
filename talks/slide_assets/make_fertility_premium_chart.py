@@ -46,19 +46,19 @@ def main() -> None:
     x = np.arange(len(FERT_LANGS))
     bpe_f = [by[("bpe", l)]["fertility"] for l in FERT_LANGS]
     sbp_f = [by[("superbpe", l)]["fertility"] for l in FERT_LANGS]
-    bars1 = axL.bar(x - width / 2, bpe_f, width, label="BPE", color=BPE, zorder=3, edgecolor="white")
-    bars2 = axL.bar(x + width / 2, sbp_f, width, label="SuperBPE", color=SBP, zorder=3, edgecolor="white")
+    bars1 = axL.bar(x - width / 2, bpe_f, width, color=BPE, zorder=3, edgecolor="white")
+    bars2 = axL.bar(x + width / 2, sbp_f, width, color=SBP, zorder=3, edgecolor="white")
     for bars in (bars1, bars2):
         for rect in bars:
             v = rect.get_height()
             axL.text(rect.get_x() + rect.get_width() / 2, v + 0.03, f"{v:.2f}",
                      ha="center", va="bottom", fontsize=9, fontweight="bold")
     axL.set_xticks(x)
-    axL.set_xticklabels([LANG_LABEL[l] for l in FERT_LANGS], fontsize=10)
+    axL.set_xticklabels([])
+    axL.tick_params(axis="x", length=0)
     axL.set_ylabel("Fertility  (tokens / whitespace word)")
     axL.set_title("Fertility  ·  lower is better", fontweight="bold")
     axL.set_ylim(0, max(bpe_f + sbp_f) * 1.22)
-    axL.legend(frameon=False, loc="upper right")
     axL.yaxis.grid(True, color="#E8EEF2", zorder=0)
     axL.set_axisbelow(True)
 

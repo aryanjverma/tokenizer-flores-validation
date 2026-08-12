@@ -56,7 +56,7 @@ LANG_LABEL = {
 TOK_ORDER = ["superbpe", "llama", "qwen", "glm", "o200k", "multi", "unigram", "wordpiece"]
 
 
-def heatmap(df, metric, title, out_path, cmap="lower", omit_cjk_null=False, vmax_label=""):
+def heatmap(df, metric, title, out_path, cmap="lower", omit_cjk_null=False, vmax_label="", *, hide_lang_tok_labels: bool = False):
     toks = [t for t in TOK_ORDER if t in set(df.tokenizer_id)]
     langs = [l for l in LANG_ORDER if l in set(df.language)]
     mat = np.full((len(langs), len(toks)), np.nan)
@@ -80,9 +80,18 @@ def heatmap(df, metric, title, out_path, cmap="lower", omit_cjk_null=False, vmax
 
     im = ax.imshow(mat, aspect="auto", cmap=cmap_name)
     ax.set_xticks(range(len(toks)))
-    ax.set_xticklabels([TOK_LABEL.get(t, t) for t in toks], fontsize=10)
     ax.set_yticks(range(len(langs)))
-    ax.set_yticklabels([LANG_LABEL.get(l, l) for l in langs], fontsize=11)
+    if hide_lang_tok_labels:
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.tick_params(length=0)
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+    else:
+        ax.set_xticklabels([TOK_LABEL.get(t, t) for t in toks], fontsize=10)
+        ax.set_yticklabels([LANG_LABEL.get(l, l) for l in langs], fontsize=11)
+        ax.set_xlabel("Tokenizer", fontsize=12, labelpad=8)
+        ax.set_ylabel("Language (FLORES-200)", fontsize=12)
     ax.set_title(title, fontsize=15, fontweight="bold", pad=14)
 
     # annotate cells
@@ -102,8 +111,6 @@ def heatmap(df, metric, title, out_path, cmap="lower", omit_cjk_null=False, vmax
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
     cbar.set_label(vmax_label or metric, fontsize=10)
-    ax.set_xlabel("Tokenizer", fontsize=12, labelpad=8)
-    ax.set_ylabel("Language (FLORES-200)", fontsize=12)
     fig.text(
         0.5, 0.01,
         "Study A · FLORES-200 devtest · cell = metric value · redder = worse (except STRR: greener = better)",
@@ -115,7 +122,7 @@ def heatmap(df, metric, title, out_path, cmap="lower", omit_cjk_null=False, vmax
     print(f"Wrote {out_path}")
 
 
-def grouped_worst(df, metric, title, out_path, higher_better=False, langs=None):
+def grouped_worst(df, metric, title, out_path, higher_better=False, langs=None, *, hide_lang_tok_labels: bool = False):
     """Bar chart: for selected hard languages, every tokenizer named."""
     langs = langs or ["amh_Ethi", "ory_Orya", "arz_Arab", "hun_Latn", "swh_Latn"]
     toks = [t for t in TOK_ORDER if t in set(df.tokenizer_id)]
@@ -135,8 +142,13 @@ def grouped_worst(df, metric, title, out_path, higher_better=False, langs=None):
             vals.append(float(v) if v is not None and not (isinstance(v, float) and np.isnan(v)) else np.nan)
         bars = ax.barh(range(len(toks)), vals, color=colors, zorder=3)
         ax.set_yticks(range(len(toks)))
-        ax.set_yticklabels(labels, fontsize=8)
-        ax.set_title(LANG_LABEL[lang], fontsize=11, fontweight="bold")
+        if hide_lang_tok_labels:
+            ax.set_yticklabels([])
+            ax.tick_params(axis="y", length=0)
+            ax.set_title("")
+        else:
+            ax.set_yticklabels(labels, fontsize=8)
+            ax.set_title(LANG_LABEL[lang], fontsize=11, fontweight="bold")
         ax.xaxis.grid(True, color="#E8EEF2", zorder=0)
         ax.set_axisbelow(True)
         # highlight worst
@@ -170,6 +182,7 @@ def main():
         OUT / "fertility_by_tokenizer_heatmap.png",
         cmap="lower",
         vmax_label="Fertility",
+        hide_lang_tok_labels=True,
     )
     # STRR: drop Mandarin (null)
     df_strr = df[df.language != "zho_Hans"].copy()
@@ -179,6 +192,7 @@ def main():
         OUT / "strr_by_tokenizer_heatmap.png",
         cmap="higher",
         vmax_label="STRR",
+        hide_lang_tok_labels=True,
     )
 
     grouped_worst(
@@ -192,12 +206,14 @@ def main():
         "Who fragments? Fertility — named tokenizers",
         OUT / "fertility_by_tokenizer_bars.png",
         higher_better=False,
+        hide_lang_tok_labels=True,
     )
     grouped_worst(
         df_strr, "strr",
         "Who keeps whole words? STRR — named tokenizers (higher better)",
         OUT / "strr_by_tokenizer_bars.png",
         higher_better=True,
+        hide_lang_tok_labels=True,
     )
 
     # also copy paper heatmap with frontier names if present

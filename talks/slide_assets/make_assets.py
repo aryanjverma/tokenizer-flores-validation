@@ -58,7 +58,17 @@ def _load_metrics():
     return pd.DataFrame(rows)
 
 
-def grouped_bars(df, metric, title, ylabel, out_path, omit_cjk=False, higher_better=False):
+def grouped_bars(
+    df,
+    metric,
+    title,
+    ylabel,
+    out_path,
+    omit_cjk=False,
+    higher_better=False,
+    *,
+    hide_lang_tok_labels: bool = False,
+):
     data = df.copy()
     if omit_cjk:
         data = data[data["language"] != "zho_Hans"]
@@ -70,13 +80,20 @@ def grouped_bars(df, metric, title, ylabel, out_path, omit_cjk=False, higher_bet
     x = np.arange(len(langs))
     w = 0.36
     fig, ax = plt.subplots(figsize=(10.5, 5.2), dpi=200)
-    ax.bar(x - w / 2, bpe, w, label="gigatoken (BPE)", color=BPE_C, zorder=3)
-    ax.bar(x + w / 2, sbp, w, label="supergigatoken (SuperBPE)", color=SBP_C, zorder=3)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, rotation=20, ha="right")
+    if hide_lang_tok_labels:
+        ax.bar(x - w / 2, bpe, w, color=BPE_C, zorder=3)
+        ax.bar(x + w / 2, sbp, w, color=SBP_C, zorder=3)
+        ax.set_xticks(x)
+        ax.set_xticklabels([])
+        ax.tick_params(axis="x", length=0)
+    else:
+        ax.bar(x - w / 2, bpe, w, label="gigatoken (BPE)", color=BPE_C, zorder=3)
+        ax.bar(x + w / 2, sbp, w, label="supergigatoken (SuperBPE)", color=SBP_C, zorder=3)
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, rotation=20, ha="right")
+        ax.legend(frameon=False, loc="upper right")
     ax.set_ylabel(ylabel)
     ax.set_title(title, pad=12, color=INK, fontweight="bold")
-    ax.legend(frameon=False, loc="upper right")
     ax.yaxis.grid(True, color="#E8EEF2", zorder=0)
     ax.set_axisbelow(True)
     note = "Higher is better" if higher_better else "Lower is better"
@@ -264,6 +281,7 @@ def main():
         OUT / "fertility_bpe_vs_superbpe.png",
         omit_cjk=True,
         higher_better=False,
+        hide_lang_tok_labels=True,
     )
     # with Mandarin on a separate note chart (log-ish / separate)
     grouped_bars(
@@ -274,6 +292,7 @@ def main():
         OUT / "fertility_bpe_vs_superbpe_with_mandarin.png",
         omit_cjk=False,
         higher_better=False,
+        hide_lang_tok_labels=True,
     )
     grouped_bars(
         df,
@@ -283,6 +302,7 @@ def main():
         OUT / "strr_bpe_vs_superbpe.png",
         omit_cjk=True,  # Mandarin STRR is null
         higher_better=True,
+        hide_lang_tok_labels=True,
     )
     grouped_bars(
         df,
